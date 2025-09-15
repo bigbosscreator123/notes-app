@@ -7,8 +7,20 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+type Note = {
+  id: number;
+  title: string;
+  content: string;
+};
+
 export default function NotesApp() {
-  const [notes, setNotes] = useState<any[]>([]);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) window.location.href = "/login";
+    });
+  }, []);
+
+  const [notes, setNotes] = useState<Note[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
@@ -17,14 +29,31 @@ export default function NotesApp() {
   }, []);
 
   async function fetchNotes() {
-    const { data, error } = await supabase.from("notes").select("*");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("user_id", user.id);
+
     if (error) console.error(error);
-    else setNotes(data);
+    else setNotes(data || []);
   }
 
   async function addNote() {
-    if (!title.trim() || !content.trim()) return; // prevent empty notes
-    const { error } = await supabase.from("notes").insert([{ title, content }]);
+    if (!title.trim() || !content.trim()) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("You must be logged in to add a note");
+      return;
+    }
+
+    const { error } = await supabase.from("notes").insert([
+      { title, content, user_id: user.id }
+    ]);
+
     if (error) console.error(error);
     else {
       setTitle("");
@@ -54,7 +83,7 @@ export default function NotesApp() {
           className="border p-3 rounded-lg text-lg"
         />
         <textarea
-          placeholder="How will you acheive this?"
+          placeholder="How will you achieve this?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="border p-3 rounded-lg text-base h-24"
@@ -90,4 +119,3 @@ export default function NotesApp() {
     </div>
   );
 }
-
