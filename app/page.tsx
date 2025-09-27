@@ -27,30 +27,65 @@ export default function NotesApp() {
   const [content, setContent] = useState("");
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  // useEffect(() => {
+  //   fetchNotes();
+  // }, []);
+
+  // useEffect(() => {
+  //   const fetchName = async () => {
+  //     const { data: { user } } = await supabase.auth.getUser();
+  //     if (!user) return;
+
+  //     const { data, error } = await supabase
+  //       .from("user_settings")
+  //       .select("name")
+  //       .eq("id", user.id)
+  //       .single();
+
+  //     if (!error && data) {
+  //       setName(data.name || "");
+  //       setIsEditing(!data.name); // edit if first time
+  //     }
+  //   };
+
+  //   fetchName();
+  // }, []);
 
   useEffect(() => {
-    fetchNotes();
-  }, []);
-
-  useEffect(() => {
-    const fetchName = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("name")
-        .eq("id", user.id)
-        .single();
-
-      if (!error && data) {
-        setName(data.name || "");
-        setIsEditing(!data.name); // edit if first time
+    const loadData = async () => {
+      const { data: {user} } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/login";
+        return;
       }
-    };
 
-    fetchName();
+    const {data: userData} = await supabase
+      .from("user_settings")
+      .select("name")
+      .eq("id", user.id)
+      .single();
+
+    if (userData) {
+      setName(userData.name || "");
+      setIsEditing(!userData.name);
+    }
+
+    const {data: notesData} = await supabase
+      .from("notes")
+      .select("*")
+      .eq("user_id", user.id);
+
+    setNotes(notesData || []);
+    setLoading(false);
+  };
+  loadData();
   }, []);
+
+
+
+
 
   async function fetchNotes() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -128,8 +163,16 @@ export default function NotesApp() {
     await saveName();
   };
 
+  if(loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-rose-50">
+        <p className="text-sm text-black-700">one sec :)</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col items-center min-h-screen p-8 bg-blue-100">
+    <div className="flex flex-col items-center min-h-screen p-8 bg-rose-50">
       {/* Page Title */}
       <h1 className="text-4xl font-bold mb-6 mt-50">
         Good morning,{" "}
@@ -150,7 +193,7 @@ export default function NotesApp() {
           <span 
             onClick={() => setIsEditing(true)}
             className={`cursor-pointer hover:text-yellow-600 transition-colors transition-colors ${
-              !name ? "underline text-blue-500 font-bold" : ""
+              !name ? "underline text-black/20 italic" : ""
         }`}
           >
             {name || "name?"} 
