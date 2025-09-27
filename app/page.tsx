@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -14,6 +14,8 @@ type Note = {
 };
 
 export default function NotesApp() {
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) window.location.href = "/login";
@@ -23,9 +25,31 @@ export default function NotesApp() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [name, setName] = useState("");
+  const [isEditing, setIsEditing] = useState(true);
 
   useEffect(() => {
     fetchNotes();
+  }, []);
+
+  useEffect(() => {
+    const fetchName = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+
+      if (!error && data) {
+        setName(data.name || "");
+        setIsEditing(!data.name); // edit if first time
+      }
+    };
+
+    fetchName();
   }, []);
 
   async function fetchNotes() {
@@ -68,10 +92,71 @@ export default function NotesApp() {
     else fetchNotes();
   }
 
+  async function saveName() {
+    const trimmedName = name.trim();
+  
+    if (!trimmedName) {
+      setName("");
+      nameInputRef.current?.focus();
+      return;
+    }
+    setIsEditing(false);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from("user_settings").upsert({
+      id: user.id,
+      name: trimmedName,
+    });
+  }
+
+  // Handle key press events
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      await saveName();
+    }
+  };
+
+  const handleBlur = async () => {
+    const trimmedName = name.trim();
+     if (!trimmedName) {
+      setName("");
+      setIsEditing(false);
+      return;
+    }
+    await saveName();
+  };
+
   return (
-    <div className="flex flex-col items-center min-h-screen p-8 bg-gray-100">
+    <div className="flex flex-col items-center min-h-screen p-8 bg-blue-100">
       {/* Page Title */}
-      <h1 className="text-3xl font-bold mb-6">To Do List</h1>
+      <h1 className="text-4xl font-bold mb-6 mt-50">
+        Good morning,{" "}
+        {isEditing ? (
+          <input
+            ref={nameInputRef}
+            type="text"
+            placeholder="name?"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            autoFocus
+            className="bg-transparent border-b border-gray-400 text-center outline-none"
+            style={{ width: `${Math.max((name.length + 1) * 1.1, 6)}ch` }}
+          />
+        ) : (
+          <span 
+            onClick={() => setIsEditing(true)}
+            className={`cursor-pointer hover:text-yellow-600 transition-colors transition-colors ${
+              !name ? "underline text-blue-500 font-bold" : ""
+        }`}
+          >
+            {name || "name?"} 
+          </span>
+        )}
+      </h1>
 
       {/* Input Form */}
       <div className="w-full max-w-lg flex flex-col gap-4 bg-white p-6 rounded-xl shadow-md">
@@ -80,19 +165,20 @@ export default function NotesApp() {
           placeholder="Task"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="border p-3 rounded-lg text-lg"
+          className="border p-2 rounded-lg text-md"
         />
-        <textarea
+        <input
+          type="text"
           placeholder="How will you achieve this?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="border p-3 rounded-lg text-base h-24"
+          className="border p-2 rounded-lg text-md"
         />
         <button
           onClick={addNote}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-700 transition"
         >
-          Add Note
+          commit
         </button>
       </div>
 
