@@ -29,7 +29,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-rose-50">
       <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
       <form onSubmit={handleSignup} className="flex flex-col gap-3 w-64">
         <input

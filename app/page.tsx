@@ -14,8 +14,7 @@ type Note = {
 };
 
 export default function NotesApp() {
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  
+  const nameInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) window.location.href = "/login";
@@ -28,30 +27,46 @@ export default function NotesApp() {
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [greeting, setGreeting] = useState("");
+  const [adding, setAdding] = useState (false);
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [currentTime,setCurrentTime] = useState("");
+  const [goalsOpen, setGoalsOpen] = useState(false);
+  // const [checkBox, setCheckBox] = useState(true);
 
-  // useEffect(() => {
-  //   fetchNotes();
-  // }, []);
+  function getFormattedTime() {
+    return new Date().toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
 
-  // useEffect(() => {
-  //   const fetchName = async () => {
-  //     const { data: { user } } = await supabase.auth.getUser();
-  //     if (!user) return;
+  useEffect(() => {
+    setGreeting(getGreeting());
+    setCurrentTime(getFormattedTime());
 
-  //     const { data, error } = await supabase
-  //       .from("user_settings")
-  //       .select("name")
-  //       .eq("id", user.id)
-  //       .single();
+    const interval = setInterval(() => {
+      setGreeting(getGreeting());
+      setCurrentTime(getFormattedTime());
+    }, 60 * 1000);
 
-  //     if (!error && data) {
-  //       setName(data.name || "");
-  //       setIsEditing(!data.name); // edit if first time
-  //     }
-  //   };
+    return () => clearInterval(interval);
+  }, []);
 
-  //   fetchName();
-  // }, []);
+  function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour >=5 && hour < 12) return "Good morning";
+    if (hour >=12 && hour <18) return "Good afternoon";
+    return "Good evening";
+  }
+
+  useEffect (() => {
+    setGreeting(getGreeting());
+    const interval = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -83,10 +98,6 @@ export default function NotesApp() {
   loadData();
   }, []);
 
-
-
-
-
   async function fetchNotes() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -103,9 +114,12 @@ export default function NotesApp() {
   async function addNote() {
     if (!title.trim() || !content.trim()) return;
 
+    setAdding(true);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       alert("You must be logged in to add a note");
+      setAdding(false)
       return;
     }
 
@@ -113,6 +127,7 @@ export default function NotesApp() {
       { title, content, user_id: user.id }
     ]);
 
+    setAdding(false);
     if (error) console.error(error);
     else {
       setTitle("");
@@ -122,7 +137,9 @@ export default function NotesApp() {
   }
 
   async function deleteNote(id: number) {
+    setDeleting(id);
     const { error } = await supabase.from("notes").delete().eq("id", id);
+    setDeleting(null);
     if (error) console.error(error);
     else fetchNotes();
   }
@@ -173,9 +190,54 @@ export default function NotesApp() {
 
   return (
     <div className="flex flex-col items-center min-h-screen p-8 bg-rose-50">
-      {/* Page Title */}
-      <h1 className="text-4xl font-bold mb-6 mt-50">
-        Good morning,{" "}
+    {goalsOpen && (
+     <div className="fixed top-40 left-10 w-80 bg-white p-4 rounded">
+        <h2 className="text-xl font-bold mb-4 text-center">Today&apos;s Goals!</h2>
+        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+        {notes.map((note) => (
+          <div
+            key={note.id}
+            className="bg-white p-1 flex justify-between items-start"
+          >
+            <div className = "flex items-start space-x-2">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 text-blue-500 border-gray-300 rounded"
+                />
+            <div>
+              <h2 className="text-m font-semibold">{note.title}</h2>
+              <p className="text-gray-700">{note.content}</p>
+            </div>
+          </div>
+
+            <button
+              onClick={() => deleteNote(note.id)}
+              disabled={deleting === note.id}
+              className={`px-3 py-1 rounded transition ${
+                deleting === note.id
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-red-500 hover:text-red-700"
+              }`}
+            >
+              {deleting === note.id ? "deleting..." : "delete"}
+            </button>
+          </div>
+        ))}
+        </div>
+      </div>
+      )}
+      <button
+          onClick={() => setGoalsOpen(!goalsOpen)}
+          className="fixed bottom-20 left-10 px-5 py-3 rounded-full shadow-lg bg-black-600 text-black hover:bg-amber-500"
+        >
+          {goalsOpen ? "hide task" : "show task"}
+        </button>
+
+    <div className="top-6 text-6xl font-block mt-20 text-black-500 mt-50">
+      {currentTime}
+      </div>
+      <h1 className="text-4xl font-bold mb-6 mt-10">
+        {greeting}, {" "}
         {isEditing ? (
           <input
             ref={nameInputRef}
@@ -219,31 +281,15 @@ export default function NotesApp() {
         />
         <button
           onClick={addNote}
-          className="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-700 transition"
+          disabled={adding}
+          className={`px-4 py-1 rounded-lg transition ${
+            adding
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-500 hover:bg-blue-700 text-white"
+          }`}
         >
-          commit
+          {adding ? "committing..." : "commit"}
         </button>
-      </div>
-
-      {/* Notes List */}
-      <div className="w-full max-w-lg mt-8 space-y-4">
-        {notes.map((note) => (
-          <div
-            key={note.id}
-            className="bg-white p-4 rounded-lg shadow flex justify-between items-start"
-          >
-            <div>
-              <h2 className="text-xl font-semibold">{note.title}</h2>
-              <p className="text-gray-700">{note.content}</p>
-            </div>
-            <button
-              onClick={() => deleteNote(note.id)}
-              className="text-red-500 hover:text-red-700"
-            >
-              Delete
-            </button>
-          </div>
-        ))}
       </div>
     </div>
   );
