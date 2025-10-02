@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { bibleVerses } from "./verses";
+import { backgrounds } from "./images";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,14 +35,22 @@ export default function NotesApp() {
   const [currentTime,setCurrentTime] = useState("");
   const [goalsOpen, setGoalsOpen] = useState(true);
   const [bibleVerse, setBibleVerse] = useState ("");
+  const [backgroundURL, setBackgroundURL] = useState ("");
 
 
-useEffect(() => {
-  const dayOfYear = Math.floor(
-    (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-  );
-  setBibleVerse(bibleVerses[dayOfYear % bibleVerses.length]);
-}, []);
+  useEffect(() => {
+    const dayOfYear = Math.floor(
+      (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+    );
+    setBackgroundURL(backgrounds[dayOfYear % backgrounds.length]);
+  }, []);
+
+  useEffect(() => {
+    const dayOfYear = Math.floor(
+      (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+    );
+    setBibleVerse(bibleVerses[dayOfYear % bibleVerses.length]);
+  }, []);
 
   async function toggleComplete(noteId: number, current: boolean) {
     const { error } = await supabase
@@ -207,15 +216,22 @@ useEffect(() => {
 
   if(loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-rose-50">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <p className="text-sm text-black-700">one sec :)</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen p-8 bg-pink-200">
-    <div className="absolute text-center mt-160 text-m text-black/80 italic">{bibleVerse}</div>
+    <div className="flex flex-col items-center min-h-screen p-8"
+      style={{
+          backgroundImage: `url(${ backgroundURL })`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+      }}>
+
+    <div className="absolute text-center mt-160 text-lg text-white/80 italic">{bibleVerse}</div>
     {goalsOpen && (
      <div className="fixed top-40 left-10 w-80 bg-white p-4 rounded">
         <h2 className="text-xl font-bold mb-4 text-center">Today&apos;s Goals</h2>
@@ -264,10 +280,10 @@ useEffect(() => {
           {goalsOpen ? "close" : "tasks"}
         </button>
 
-    <div className="top-6 text-8xl font-block text-black-500 mt-50">
+    <div className="top-6 text-8xl font-block text-white mt-50">
       {currentTime}
       </div>
-      <h1 className="text-4xl font-bold mb-6 mt-10">
+      <h1 className="text-4xl font-bold mb-6 mt-10 text-white">
         {greeting}, {" "}
         {isEditing ? (
           <input
@@ -285,8 +301,8 @@ useEffect(() => {
         ) : (
           <span 
             onClick={() => setIsEditing(true)}
-            className={`cursor-pointer hover:text-yellow-600 transition-colors transition-colors ${
-              !name ? "underline text-black/20 italic" : ""
+            className={`cursor-pointer hover:text-amber-200 transition-colors transition-colors ${
+              !name ? "underline text-white/60" : ""
         }`}
           >
             {name || "name?"} 
