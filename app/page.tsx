@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { bibleVerses } from "./verses";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,16 +32,25 @@ export default function NotesApp() {
   const [adding, setAdding] = useState (false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [currentTime,setCurrentTime] = useState("");
-  const [goalsOpen, setGoalsOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(true);
+  const [bibleVerse, setBibleVerse] = useState ("");
 
-async function toggleComplete(noteId: number, current: boolean) {
-  const { error } = await supabase
-    .from("notes")
-    .update({completed: !current })
-    .eq("id", noteId);
 
-    if (error) console.error(error);
-    else fetchNotes();
+useEffect(() => {
+  const dayOfYear = Math.floor(
+    (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+  );
+  setBibleVerse(bibleVerses[dayOfYear % bibleVerses.length]);
+}, []);
+
+  async function toggleComplete(noteId: number, current: boolean) {
+    const { error } = await supabase
+      .from("notes")
+      .update({completed: !current })
+      .eq("id", noteId);
+
+      if (error) console.error(error);
+      else fetchNotes();
 }
 
   function getFormattedTime() {
@@ -205,6 +215,7 @@ async function toggleComplete(noteId: number, current: boolean) {
 
   return (
     <div className="flex flex-col items-center min-h-screen p-8 bg-pink-200">
+    <div className="absolute text-center mt-160 text-m text-black/80 italic">{bibleVerse}</div>
     {goalsOpen && (
      <div className="fixed top-40 left-10 w-80 bg-white p-4 rounded">
         <h2 className="text-xl font-bold mb-4 text-center">Today&apos;s Goals</h2>
@@ -248,12 +259,12 @@ async function toggleComplete(noteId: number, current: boolean) {
       )}
       <button
           onClick={() => setGoalsOpen(!goalsOpen)}
-          className="fixed bottom-20 left-10 px-5 py-3 rounded-full shadow-lg bg-black-600 text-black hover:bg-amber-500"
+          className="fixed top-15 left-43 px-3 py-3 rounded-full shadow-lg bg-white text-black hover:bg-amber-500"
         >
-          {goalsOpen ? "hide task" : "show task"}
+          {goalsOpen ? "close" : "tasks"}
         </button>
 
-    <div className="top-6 text-6xl font-block mt-20 text-black-500 mt-50">
+    <div className="top-6 text-8xl font-block text-black-500 mt-50">
       {currentTime}
       </div>
       <h1 className="text-4xl font-bold mb-6 mt-10">
@@ -285,7 +296,7 @@ async function toggleComplete(noteId: number, current: boolean) {
 
     {/* Input Form */}
     <div className="w-full max-w-xl">
-      <div className="relative flex items-center bg-white rounded-xl shadow-md">
+      <div className="relative flex items-center bg-white rounded-xl shadow-md m-11">
         <input
           type="text"
           placeholder="What are todays goals?"
