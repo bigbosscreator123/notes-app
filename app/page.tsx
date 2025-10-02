@@ -24,7 +24,6 @@ export default function NotesApp() {
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(true);
   const [loading, setLoading] = useState(true);
