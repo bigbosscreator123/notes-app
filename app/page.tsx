@@ -55,12 +55,22 @@ async function toggleComplete(noteId: number, current: boolean) {
     setGreeting(getGreeting());
     setCurrentTime(getFormattedTime());
 
+    const now = new Date();
+    const msUntilNextMin = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+    const timeout = setTimeout(() => {
+      setGreeting(getGreeting());
+      setCurrentTime(getFormattedTime());
+
     const interval = setInterval(() => {
       setGreeting(getGreeting());
       setCurrentTime(getFormattedTime());
     }, 60 * 1000);
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    }, msUntilNextMin);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   function getGreeting() {
