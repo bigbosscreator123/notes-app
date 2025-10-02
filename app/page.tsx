@@ -11,6 +11,7 @@ type Note = {
   id: number;
   title: string;
   content: string;
+  completed: boolean;
 };
 
 export default function NotesApp() {
@@ -32,7 +33,17 @@ export default function NotesApp() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [currentTime,setCurrentTime] = useState("");
   const [goalsOpen, setGoalsOpen] = useState(false);
-  // const [checkBox, setCheckBox] = useState(true);
+  const [checkBox, setCheckBox] = useState(true);
+
+async function toggleComplete(noteId: number, current: boolean) {
+  const { error } = await supabase
+    .from("notes")
+    .update({completed: !current })
+    .eq("id", noteId);
+
+    if (error) console.error(error);
+    else fetchNotes();
+}
 
   function getFormattedTime() {
     return new Date().toLocaleTimeString([], {
@@ -56,8 +67,9 @@ export default function NotesApp() {
   function getGreeting() {
     const hour = new Date().getHours();
     if (hour >=5 && hour < 12) return "Good morning";
-    if (hour >=12 && hour <18) return "Good afternoon";
-    return "Good evening";
+    if (hour >=12 && hour < 20) return "Good afternoon";
+    if (hour >=20 && hour < 24) return "Good evening";
+    return "Good night";
   }
 
   useEffect (() => {
@@ -105,7 +117,8 @@ export default function NotesApp() {
     const { data, error } = await supabase
       .from("notes")
       .select("*")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .order("id", { ascending: true });
 
     if (error) console.error(error);
     else setNotes(data || []);
@@ -189,26 +202,31 @@ export default function NotesApp() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen p-8 bg-rose-50">
+    <div className="flex flex-col items-center min-h-screen p-8 bg-pink-200">
     {goalsOpen && (
      <div className="fixed top-40 left-10 w-80 bg-white p-4 rounded">
-        <h2 className="text-xl font-bold mb-4 text-center">Today&apos;s Goals!</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Today&apos;s Goals</h2>
         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
         {notes.map((note) => (
           <div
             key={note.id}
-            className="bg-white p-1 flex justify-between items-start"
+            className="bg-white p-2 flex justify-between items-center rounded shadow-sm"
           >
-            <div className = "flex items-start space-x-2">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                className="mt-1 h-4 w-4 text-blue-500 border-gray-300 rounded"
-                />
-            <div>
-              <h2 className="text-m font-semibold">{note.title}</h2>
-              <p className="text-gray-700">{note.content}</p>
+                checked={note.completed}
+                onChange={() => toggleComplete(note.id, note.completed)}
+                className="h-4 w-4 text-blue-500 border-gray-300 rounded"
+              />
+              <span
+                className={`text-m font-semibold ${
+                  note.completed ? "line-through text-gray-400" : ""
+                }`}
+              >
+                {note.title}
+              </span>
             </div>
-          </div>
 
             <button
               onClick={() => deleteNote(note.id)}
