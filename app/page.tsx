@@ -128,30 +128,29 @@ async function toggleComplete(noteId: number, current: boolean) {
     else setNotes(data || []);
   }
 
-  async function addNote() {
-    if (!title.trim() || !content.trim()) return;
+      async function addNote() {
+      if (!title.trim()) return;
 
-    setAdding(true);
+      setAdding(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("You must be logged in to add a note");
-      setAdding(false)
-      return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("You must be logged in to add a note");
+        setAdding(false);
+        return;
+      }
+
+      const { error } = await supabase.from("notes").insert([
+        { title, content: "", user_id: user.id }
+      ]);
+
+      setAdding(false);
+      if (error) console.error(error);
+      else {
+        setTitle("");
+        fetchNotes();
+      }
     }
-
-    const { error } = await supabase.from("notes").insert([
-      { title, content, user_id: user.id }
-    ]);
-
-    setAdding(false);
-    if (error) console.error(error);
-    else {
-      setTitle("");
-      setContent("");
-      fetchNotes();
-    }
-  }
 
   async function deleteNote(id: number) {
     setDeleting(id);
@@ -285,34 +284,48 @@ async function toggleComplete(noteId: number, current: boolean) {
         )}
       </h1>
 
-      {/* Input Form */}
-      <div className="w-full max-w-lg flex flex-col gap-4 bg-white p-6 rounded-xl shadow-md">
+    {/* Input Form */}
+    <div className="w-full max-w-xl">
+      <div className="relative flex items-center bg-white rounded-xl shadow-md">
         <input
           type="text"
-          placeholder="Task"
+          placeholder="What are todays goals?"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="border p-2 rounded-lg text-md"
-        />
-        <input
-          type="text"
-          placeholder="How will you achieve this?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="border p-2 rounded-lg text-md"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              addNote();
+            }
+          }}
+          className="flex-1 border-none p-4 rounded-xl text-md outline-none focus:ring-2 focus:ring-amber-500"
         />
         <button
           onClick={addNote}
-          disabled={adding}
-          className={`px-4 py-1 rounded-lg transition ${
-            adding
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-500 hover:bg-blue-700 text-white"
+          disabled={adding || !title.trim()}
+          className={`absolute right-2 p-2 rounded-lg transition ${
+            adding || !title.trim()
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-gray-400 hover:bg-amber-500"
           }`}
         >
-          {adding ? "committing..." : "commit"}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="white"
+            className="w-5 h-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+            />
+          </svg>
         </button>
       </div>
+    </div>
     </div>
   );
 }
