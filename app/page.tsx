@@ -33,7 +33,6 @@ export default function NotesApp() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [currentTime,setCurrentTime] = useState("");
   const [goalsOpen, setGoalsOpen] = useState(false);
-  const [checkBox, setCheckBox] = useState(true);
 
 async function toggleComplete(noteId: number, current: boolean) {
   const { error } = await supabase
@@ -99,12 +98,7 @@ async function toggleComplete(noteId: number, current: boolean) {
       setIsEditing(!userData.name);
     }
 
-    const {data: notesData} = await supabase
-      .from("notes")
-      .select("*")
-      .eq("user_id", user.id);
-
-    setNotes(notesData || []);
+    await fetchNotes();
     setLoading(false);
   };
   loadData();
