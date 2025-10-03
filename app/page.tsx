@@ -234,7 +234,12 @@ export default function NotesApp() {
     <div className="absolute text-center mt-160 text-lg text-white/80 italic">{bibleVerse}</div>
     {goalsOpen && (
      <div className="fixed top-40 left-10 w-80 bg-white p-4 rounded">
-        <h2 className="text-xl font-bold mb-4 text-center">Today&apos;s Goals</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">
+          Today&apos;s Goals
+          <span className="text-sm font-normal text-gray-600 ml-2">
+            {notes.filter(note => note.completed).length}/{notes.length} complete
+          </span>
+        </h2>
         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
         {notes.map((note) => (
           <div
