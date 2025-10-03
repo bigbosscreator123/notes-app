@@ -36,7 +36,25 @@ export default function NotesApp() {
   const [goalsOpen, setGoalsOpen] = useState(true);
   const [bibleVerse, setBibleVerse] = useState ("");
   const [backgroundURL, setBackgroundURL] = useState ("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
+
+  async function updateNote(id: number) {
+    if (!editTitle.trim()) return;
+
+    const { error } = await supabase
+      .from("notes")
+      .update({ title: editTitle })
+      .eq("id", id);
+
+    if (error) console.error(error);
+    else {
+      setEditingId(null);
+      setEditTitle("");
+      fetchNotes();
+    }
+  }
 
   useEffect(() => {
     const dayOfYear = Math.floor(
@@ -197,7 +215,6 @@ export default function NotesApp() {
     });
   }
 
-  // Handle key press events
   const handleKeyDown = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       await saveName();
@@ -233,14 +250,14 @@ export default function NotesApp() {
 
     <div className="absolute text-center mt-160 text-lg text-white/80 italic">{bibleVerse}</div>
     {goalsOpen && (
-     <div className="fixed top-40 left-10 w-80 bg-white p-4 rounded">
+     <div className="fixed mt-15 left-6 w-93 bg-white p-4 rounded">
         <h2 className="text-xl font-bold mb-4 text-center">
           Today&apos;s Goals
           <span className="text-sm font-normal text-gray-600 ml-2">
             {notes.filter(note => note.completed).length}/{notes.length} complete
           </span>
         </h2>
-        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+        <div className="space-y-2 max-h-[450px] overflow-y-auto pr-2">
         {notes.map((note) => (
           <div
             key={note.id}
@@ -253,6 +270,23 @@ export default function NotesApp() {
                 onChange={() => toggleComplete(note.id, note.completed)}
                 className="h-4 w-4 text-blue-500 border-gray-300 rounded"
               />
+              {editingId === note.id ? (
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") updateNote(note.id);
+                    if (e.key === "Escape") {
+                      setEditingId(null);
+                      setEditTitle("");
+                    }
+                  }}
+                onBlur={() => updateNote(note.id)}
+                autoFocus
+                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+              ) : (
               <span
                 className={`text-m font-semibold ${
                   note.completed ? "line-through text-gray-400" : ""
@@ -260,27 +294,51 @@ export default function NotesApp() {
               >
                 {note.title}
               </span>
+              )}
             </div>
-
-            <button
-              onClick={() => deleteNote(note.id)}
-              disabled={deleting === note.id}
-              className={`px-3 py-1 rounded transition ${
-                deleting === note.id
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-red-500 hover:text-red-700"
-              }`}
-            >
-              {deleting === note.id ? "deleting..." : "delete"}
-            </button>
+            <div className="flex gap-2">
+              {editingId === note.id ? (
+                <button
+                  onClick={() => {
+                    setEditingId(null);
+                    setEditTitle("");
+                  }}
+                  className="px-3 py-1 rounded transition text-gray-500 hover:text-gray-700"
+                >
+                  cancel
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingId(note.id);
+                    setEditTitle(note.title);
+                  }}
+                  className="px-3 py-1 rounded transition text-blue-500 hover:text-blue-700"
+                >
+                  edit
+                </button>
+              )}
+              <button
+                onClick={() => deleteNote(note.id)}
+                disabled={deleting === note.id}
+                className={`px-3 py-1 rounded transition ${
+                  deleting === note.id
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-red-500 hover:text-red-700"
+                }`}
+              >
+                {deleting === note.id ? "deleting..." : "delete"}
+              </button>
+            </div>
           </div>
         ))}
         </div>
       </div>
-      )}
+    )}
+    
       <button
           onClick={() => setGoalsOpen(!goalsOpen)}
-          className="fixed top-15 left-43 px-3 py-3 rounded-full shadow-lg bg-white text-black hover:bg-amber-500"
+          className="fixed top-8 left-10 px-3 py-2 rounded-lg shadow-lg bg-white text-black hover:bg-amber-500"
         >
           {goalsOpen ? "close" : "tasks"}
         </button>
